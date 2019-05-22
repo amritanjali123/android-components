@@ -62,7 +62,7 @@ class AppLinksUseCases(
      *
      * It will also provide a fallback.
      */
-    inner class GetAppLinkConfig internal constructor() {
+    inner class GetAppLinkRedirect internal constructor() {
         fun invoke(url: String): AppLinkRedirect {
             val intents = createBrowsableIntents(url)
             val appIntent = intents.firstOrNull {
@@ -108,5 +108,26 @@ class AppLinksUseCases(
         }
     }
 
-    val appLinkRedirect: GetAppLinkConfig by lazy { GetAppLinkConfig() }
+    /**
+     * Open an external app with the redirect created by the [GetAppLinkRedirect].
+     *
+     * This does not do any additional UI other than the chooser that Android may provide the user.
+     */
+    class OpenAppLinkRedirect internal constructor(
+        private val context: Context
+    ) {
+        fun invoke(redirect: AppLinkRedirect) {
+            val intent = redirect.appIntent ?: return
+
+            val openInIntent = Intent.createChooser(
+                intent,
+                context.getString(R.string.mozac_feature_applinks_open_in)
+            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+            context.startActivity(openInIntent)
+        }
+    }
+
+    val openAppLink: OpenAppLinkRedirect by lazy { OpenAppLinkRedirect(context) }
+    val appLinkRedirect: GetAppLinkRedirect by lazy { GetAppLinkRedirect() }
 }

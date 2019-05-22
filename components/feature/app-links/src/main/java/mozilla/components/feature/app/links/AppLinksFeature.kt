@@ -65,22 +65,17 @@ class AppLinksFeature(
     private fun showDialog(redirect: AppLinkRedirect, session: Session) {
         val intent = redirect.appIntent ?: return
 
-        val chooseApp = {
-            val openInIntent = Intent.createChooser(
-                intent,
-                context.getString(R.string.mozac_feature_applinks_open_in)
-            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
-            context.startActivity(openInIntent)
+        val doOpenApp = {
+            useCases.openAppLink.invoke(redirect)
         }
 
         if (!session.private) {
-            chooseApp()
+            doOpenApp()
             return
         }
 
         dialog.setAppLinkRedirect(redirect)
-        dialog.onConfirmRedirect = chooseApp
+        dialog.onConfirmRedirect = doOpenApp
         dialog.onDismiss(object : DialogInterface {
             override fun dismiss() {
                 redirect.webUrl?.let {

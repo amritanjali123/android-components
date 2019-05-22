@@ -7,6 +7,7 @@
 package mozilla.components.feature.app.links
 
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
@@ -22,6 +23,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
@@ -139,5 +141,17 @@ class AppLinksUseCasesTest {
         assertTrue(redirect.hasFallback())
 
         assertEquals("http://zxing.org", redirect.webUrl)
+    }
+
+    @Test
+    fun `An openAppLink use case starts an activity`() {
+        val context = createContext()
+        val appIntent = Intent()
+        val redirect = AppLinkRedirect(appIntent, appUrl, false)
+        val subject = AppLinksUseCases(context, setOf(browserPackage))
+
+        subject.openAppLink.invoke(redirect)
+
+        verify(context).startActivity(any())
     }
 }
