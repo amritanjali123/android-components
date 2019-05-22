@@ -51,6 +51,7 @@ class Session(
         fun onProgress(session: Session, progress: Int) = Unit
         fun onLoadingStateChanged(session: Session, loading: Boolean) = Unit
         fun onNavigationStateChanged(session: Session, canGoBack: Boolean, canGoForward: Boolean) = Unit
+        fun onLoadRequest(session: Session, triggeredByUserInteraction: Boolean) = Unit
         fun onSearch(session: Session, searchTerms: String) = Unit
         fun onSecurityChanged(session: Session, securityInfo: SecurityInfo) = Unit
         fun onCustomTabConfigChanged(session: Session, customTabConfig: CustomTabConfig?) = Unit
@@ -194,6 +195,13 @@ class Session(
         _, _, new -> notifyObservers {
             onSearch(this@Session, new)
         }
+    }
+
+    /**
+     * Set when a load request is received, indicating if the user was involved in the interaction.
+     */
+    var triggeredByUserInteraction: Boolean by Delegates.observable(false) {
+        _, _, new -> notifyObservers { onLoadRequest(this@Session, new) }
     }
 
     /**

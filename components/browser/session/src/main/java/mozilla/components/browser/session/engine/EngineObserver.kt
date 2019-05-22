@@ -43,6 +43,7 @@ internal class EngineObserver(
         if (triggeredByUserInteraction) {
             session.searchTerms = ""
         }
+        session.triggeredByUserInteraction = triggeredByUserInteraction
     }
 
     override fun onTitleChange(title: String) {

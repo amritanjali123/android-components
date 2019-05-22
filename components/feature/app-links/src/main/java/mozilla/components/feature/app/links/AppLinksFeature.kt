@@ -42,7 +42,12 @@ class AppLinksFeature(
 
     private val useCases = AppLinksUseCases(context)
 
-    override fun onUrlChanged(session: Session, url: String) {
+    override fun onLoadRequest(session: Session, triggeredByUserInteraction: Boolean) {
+        if (!triggeredByUserInteraction) {
+            return
+        }
+
+        val url = session.url
         val redirect = useCases.appLinkRedirect.invoke(url)
 
         if (redirect.hasExternalApp()) {

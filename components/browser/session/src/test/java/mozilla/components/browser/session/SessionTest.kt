@@ -163,6 +163,20 @@ class SessionTest {
     }
 
     @Test
+    fun `observer is notified when triggeredByUserInteraction is set`() {
+        val observer = mock(Session.Observer::class.java)
+
+        val session = Session("https://www.mozilla.org")
+        session.register(observer)
+
+        session.triggeredByUserInteraction = true
+
+        assertTrue(session.triggeredByUserInteraction)
+        verify(observer, times(1)).onLoadRequest(eq(session), eq(true))
+        verifyNoMoreInteractions(observer)
+    }
+
+    @Test
     fun `observer is notified when security info is set`() {
         var info: Session.SecurityInfo? = null
 
