@@ -6,10 +6,17 @@
 
 package mozilla.components.feature.app.links
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.content.DialogInterface
+import android.content.Intent
 import androidx.fragment.app.FragmentManager
-import mozilla.components.concept.engine.EngineSession
+import mozilla.components.browser.session.SelectionAwareSessionObserver
+import mozilla.components.browser.session.Session
+import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.request.RequestInterceptor
+import mozilla.components.feature.app.links.RedirectDialogFragment.Companion.FRAGMENT_TAG
+import mozilla.components.support.base.feature.LifecycleAwareFeature
 
 /**
  * This feature implements use cases for detecting and handling redirects to external apps. The user
@@ -26,21 +33,87 @@ import mozilla.components.concept.engine.request.RequestInterceptor
  * It requires: a [Context], and a [FragmentManager].
  */
 class AppLinksFeature(
-    context: Context,
-    fragmentManager: FragmentManager,
-    dialog: RedirectDialogFragment = SimpleRedirectDialogFragment.newInstance()
-) {
-    val useCases = AppLinksUseCases(context, null, fragmentManager, dialog)
+    private val context: Context,
+    private val sessionManager: SessionManager,
+    private val sessionId: String? = null,
+    private val fragmentManager: FragmentManager? = null,
+    private var dialog: RedirectDialogFragment = SimpleRedirectDialogFragment.newInstance()
+) : SelectionAwareSessionObserver(sessionManager), LifecycleAwareFeature {
 
-    val interceptor = object : RequestInterceptor {
-        override fun onLoadRequest(session: EngineSession, uri: String): RequestInterceptor.InterceptionResponse? {
-            val redirect = useCases.appLinkRedirect.invoke(uri)
-            return if (redirect.hasExternalApp()) {
-                useCases.loadUrl.invoke(redirect, session)
-                null
-            } else {
-                redirect.webUrl?.let { RequestInterceptor.InterceptionResponse.Url(it) }
+    private val useCases = AppLinksUseCases(context)
+
+    override fun onUrlChanged(session: Session, url: String) {
+        val redirect = useCases.appLinkRedirect.invoke(url)
+
+        if (redirect.hasExternalApp()) {
+            showDialog(redirect, session)
+        }
+    }
+
+    /**
+     * Starts observing app links on the selected session.
+     */
+    override fun start() {
+        observeIdOrSelected(sessionId)
+
+        findPreviousDialogFragment()?.let {
+            reAttachOnStartDownloadListener(it)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun showDialog(redirect: AppLinkRedirect, session: Session) {
+        val intent = redirect.appIntent ?: return
+
+        val chooseApp = {
+            val openInIntent = Intent.createChooser(
+                intent,
+                context.getString(R.string.mozac_feature_applinks_open_in)
+            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+            context.startActivity(openInIntent)
+        }
+
+        if (!session.private) {
+            chooseApp()
+            return
+        }
+
+        dialog.setAppLinkRedirect(redirect)
+        dialog.onConfirmRedirect = chooseApp
+        dialog.onDismiss(object : DialogInterface {
+            override fun dismiss() {
+                redirect.webUrl?.let {
+                    sessionManager.getOrCreateEngineSession(session).loadUrl(it)
+                }
+            }
+
+            override fun cancel() {
+                dismiss()
+            }
+        })
+
+        if (!isAlreadyADialogCreated()) {
+            dialog.show(fragmentManager, FRAGMENT_TAG)
+        }
+    }
+
+    private fun isAlreadyADialogCreated(): Boolean {
+        return findPreviousDialogFragment() != null
+    }
+
+    private fun reAttachOnStartDownloadListener(previousDialog: RedirectDialogFragment?) {
+        previousDialog?.apply {
+            this@AppLinksFeature.dialog = this
+            val selectedSession = sessionManager.selectedSession
+            selectedSession?.download?.consume {
+                onDownload(selectedSession, it)
+                false
             }
         }
+    }
+
+    private fun findPreviousDialogFragment(): RedirectDialogFragment? {
+        return fragmentManager?.findFragmentByTag(FRAGMENT_TAG) as? RedirectDialogFragment
     }
 }

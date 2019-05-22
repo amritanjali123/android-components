@@ -59,7 +59,7 @@ class AppLinksUseCasesTest {
     @Test
     fun `A URL that matches zero apps is not an app link`() {
         val context = createContext()
-        val subject = AppLinksUseCases(context, emptySet(), fragmentManager, dialog)
+        val subject = AppLinksUseCases(context, emptySet())
 
         val redirect = subject.appLinkRedirect.invoke(appUrl)
         assertFalse(redirect.isRedirect())
@@ -68,7 +68,7 @@ class AppLinksUseCasesTest {
     @Test
     fun `A URL that matches more than zero apps is an app link`() {
         val context = createContext(appPackage)
-        val subject = AppLinksUseCases(context, emptySet(), fragmentManager, dialog)
+        val subject = AppLinksUseCases(context, emptySet())
 
         val redirect = subject.appLinkRedirect.invoke(appUrl)
         assertTrue(redirect.isRedirect())
@@ -77,7 +77,7 @@ class AppLinksUseCasesTest {
     @Test
     fun `A URL that matches only excluded packages is not an app link`() {
         val context = createContext(browserPackage)
-        val subject = AppLinksUseCases(context, setOf(browserPackage), fragmentManager, dialog)
+        val subject = AppLinksUseCases(context, setOf(browserPackage))
 
         val redirect = subject.appLinkRedirect.invoke(appUrl)
         assertFalse(redirect.isRedirect())
@@ -86,7 +86,7 @@ class AppLinksUseCasesTest {
     @Test
     fun `A URL that also matches excluded packages is an app link`() {
         val context = createContext(appPackage, browserPackage)
-        val subject = AppLinksUseCases(context, setOf(browserPackage), fragmentManager, dialog)
+        val subject = AppLinksUseCases(context, setOf(browserPackage))
 
         val redirect = subject.appLinkRedirect.invoke(appUrl)
         assertTrue(redirect.isRedirect())
@@ -95,7 +95,7 @@ class AppLinksUseCasesTest {
     @Test
     fun `A list of browser package names can be generated if not supplied`() {
         val context = createContext(browserPackage)
-        val subject = AppLinksUseCases(context, dialog = dialog, fragmentManager = fragmentManager)
+        val subject = AppLinksUseCases(context)
 
         assertEquals(subject.browserPackageNames, setOf(browserPackage))
     }
@@ -103,7 +103,7 @@ class AppLinksUseCasesTest {
     @Test
     fun `A intent scheme uri with an installed app`() {
         val context = createContext(appPackage, browserPackage)
-        val subject = AppLinksUseCases(context, setOf(browserPackage), fragmentManager, dialog)
+        val subject = AppLinksUseCases(context, setOf(browserPackage))
 
         val uri = "intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end"
 
@@ -117,7 +117,7 @@ class AppLinksUseCasesTest {
     @Test
     fun `A intent scheme uri without an installed app`() {
         val context = createContext(browserPackage)
-        val subject = AppLinksUseCases(context, setOf(browserPackage), fragmentManager, dialog)
+        val subject = AppLinksUseCases(context, setOf(browserPackage))
 
         val uri = "intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end"
 
@@ -130,7 +130,7 @@ class AppLinksUseCasesTest {
     @Test
     fun `A intent scheme uri with a fallback, but without an installed app`() {
         val context = createContext(browserPackage)
-        val subject = AppLinksUseCases(context, setOf(browserPackage), fragmentManager, dialog)
+        val subject = AppLinksUseCases(context, setOf(browserPackage))
 
         val uri = "intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;S.browser_fallback_url=http%3A%2F%2Fzxing.org;end"
 

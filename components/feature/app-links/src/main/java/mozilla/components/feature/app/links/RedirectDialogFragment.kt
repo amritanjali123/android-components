@@ -13,12 +13,12 @@ import androidx.fragment.app.DialogFragment
  * This is a general representation of a dialog meant to be used in collaboration with [AppLinksFeature]
  * to show a dialog before an external link is opened.
  * If [SimpleRedirectDialogFragment] is not flexible enough for your use case you should inherit for this class.
- * Be mindful to call [onConfirmRedirect] when you want to start the download.
+ * Be mindful to call [onConfirmRedirect] when you want to open the linked app.
  */
 abstract class RedirectDialogFragment : DialogFragment() {
 
     /**
-     * A callback to trigger a download, call it when you are ready to start a download. For instance,
+     * A callback to trigger a download, call it when you are ready to open the linked app. For instance,
      * a valid use case can be in confirmation dialog, after the positive button is clicked,
      * this callback must be called.
      */

@@ -7,25 +7,31 @@
 package mozilla.components.feature.app.links
 
 import android.content.Context
-import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import androidx.annotation.VisibleForTesting
-import androidx.fragment.app.FragmentManager
-import mozilla.components.concept.engine.EngineSession
-import mozilla.components.feature.app.links.RedirectDialogFragment.Companion.FRAGMENT_TAG
 import mozilla.components.support.ktx.android.net.isHttpOrHttps
 import java.util.UUID
 
 private const val EXTRA_BROWSER_FALLBACK_URL = "browser_fallback_url"
 private const val MARKET_INTENT_URI_PACKAGE_PREFIX = "market://details?id="
 
+/**
+ * These use cases allow for the detection of, and opening of links that other apps have registered
+ * an [IntentFilter]s to open.
+ *
+ * Care is taken to:
+ *  * resolve [intent://] links, including [S.browser_fallback_url]
+ *  * provide a fallback to the installed marketplace app (e.g. on Google Android, the Play Store).
+ *  * open HTTP(S) links with an external app.
+ *
+ * Since browsers are able to open HTTPS pages, existing browser apps are excluded from the list of
+ * apps that trigger a redirect to an external app.
+ */
 class AppLinksUseCases(
     private val context: Context,
-    browserPackageNames: Set<String>? = null,
-    private val fragmentManager: FragmentManager,
-    private val dialog: RedirectDialogFragment
+    browserPackageNames: Set<String>? = null
 ) {
     @VisibleForTesting
     val browserPackageNames: Set<String>
@@ -50,6 +56,12 @@ class AppLinksUseCases(
             .toHashSet()
     }
 
+    /**
+     * Parse a URL and check if it can be handled by an app elsewhere on the Android device.
+     * If that app is not available, then a market place intent is also provided.
+     *
+     * It will also provide a fallback.
+     */
     inner class GetAppLinkConfig internal constructor() {
         fun invoke(url: String): AppLinkRedirect {
             val intents = createBrowsableIntents(url)
@@ -96,46 +108,5 @@ class AppLinksUseCases(
         }
     }
 
-    class OpenAppLinkUseCase internal constructor(
-        private val context: Context,
-        private val fragmentManager: FragmentManager,
-        private val dialog: RedirectDialogFragment
-    ) {
-        fun invoke(redirect: AppLinkRedirect, session: EngineSession): Boolean {
-            val intent = redirect.appIntent ?: return false
-
-            dialog.setAppLinkRedirect(redirect)
-            dialog.onConfirmRedirect = {
-                val openInIntent = Intent.createChooser(
-                    intent,
-                    context.getString(R.string.mozac_feature_applinks_open_in)
-                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
-                context.startActivity(openInIntent)
-            }
-
-            dialog.onDismiss(object : DialogInterface {
-                override fun dismiss() {
-                    redirect.webUrl?.let {
-                        session.loadUrl(it)
-                    }
-                }
-
-                override fun cancel() {
-                    dismiss()
-                }
-            })
-
-            dialog.show(fragmentManager, FRAGMENT_TAG)
-
-            // TODO check that the user has made a choice.
-            // if the user has made a choice, we should wait until it comes back.
-            // if the user has cancelled, we should try the fallback.
-
-            return true
-        }
-    }
-
     val appLinkRedirect: GetAppLinkConfig by lazy { GetAppLinkConfig() }
-    val loadUrl: OpenAppLinkUseCase by lazy { OpenAppLinkUseCase(context, fragmentManager, dialog) }
 }

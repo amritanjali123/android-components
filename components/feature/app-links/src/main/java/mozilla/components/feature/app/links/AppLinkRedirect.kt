@@ -8,6 +8,9 @@ package mozilla.components.feature.app.links
 
 import android.content.Intent
 
+/**
+ * Data class for the external Intent or fallback URL a given URL encodes for.
+ */
 data class AppLinkRedirect(
     val appIntent: Intent?,
     val webUrl: String?,
